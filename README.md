@@ -4,17 +4,8 @@ A small Django app for investigating balance discrepancies between a transaction
 
 ## Architecture
 
-<!-- Replace this block with your diagram image, e.g.:
-![High-level architecture](docs/architecture.png)
--->
+<img width="4801" height="6447" alt="CSV Transaction-2026-06-02-202022" src="https://github.com/user-attachments/assets/185f65c0-8f2f-436b-a3dc-34a0180f37d3" />
 
-_Add a high-level diagram here (upload flow, CSV parsing, reconciliation engine, report view)._
-
-Suggested diagram elements:
-
-- Browser → `UploadView` (POST two CSVs)
-- `parse_transactions_csv` / `parse_bank_balances_csv` → `reconcile`
-- Report template (table + Chart.js)
 
 ## Reconciliation logic
 
@@ -120,7 +111,3 @@ python app.py test reconcile -v 2
 | **Dependencies** | Chart.js 4.x loaded from CDN on the report page |
 
 **Production:** Change `SECRET_KEY`, set `DEBUG=False`, configure `ALLOWED_HOSTS`, and serve via a production WSGI server (e.g. gunicorn + `config.wsgi:application`). Do not rely on `runserver` in production.
-
-## License
-
-_Add your license here if applicable._
