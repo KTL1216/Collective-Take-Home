@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Balance Reconciliation{% endblock %}</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --card: #fff;
+      --text: #1a1f2e;
+      --muted: #5c6578;
+      --border: #d8dde6;
+      --ok: #0d7a4a;
+      --ok-bg: #e8f5ee;
+      --bad: #b42318;
+      --bad-bg: #fdecea;
+      --accent: #2563eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 2rem 1.25rem; }
+    h1 { font-size: 1.6rem; margin: 0 0 0.35rem; }
+    .subtitle { color: var(--muted); margin: 0 0 1.5rem; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    label { font-weight: 600; display: block; margin-bottom: 0.25rem; }
+    .help { color: var(--muted); font-size: 0.9rem; margin: 0 0 0.75rem; }
+    input[type="file"] { display: block; margin-bottom: 1rem; }
+    button, .btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0.6rem 1.1rem;
+      font-size: 1rem;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+    button:hover, .btn:hover { filter: brightness(1.05); }
+    .errors {
+      background: var(--bad-bg);
+      border: 1px solid #f5c2c0;
+      color: var(--bad);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+    .banner-ok {
+      background: var(--ok-bg);
+      border: 1px solid #b8e0c8;
+      color: var(--ok);
+      padding: 0.85rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+    .banner-bad {
+      background: var(--bad-bg);
+      border: 1px solid #f5c2c0;
+      color: var(--bad);
+      padding: 0.85rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+    th, td { border-bottom: 1px solid var(--border); padding: 0.55rem 0.65rem; text-align: left; }
+    th { background: #f0f3f8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tr.mismatch { background: #fff5f5; }
+    .warn-list { margin: 0; padding-left: 1.2rem; color: var(--muted); }
+    .stats { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
+    .stat { min-width: 140px; }
+    .stat strong { display: block; font-size: 1.25rem; }
+    .upload-block {
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      background: #fafbfc;
+    }
+    .upload-block.transactions { border-left: 4px solid #2563eb; }
+    .upload-block.bank { border-left: 4px solid #7c3aed; }
+    .tag {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      margin-left: 0.35rem;
+      vertical-align: middle;
+    }
+    .tag.txn { background: #dbeafe; color: #1e40af; }
+    .tag.bank { background: #ede9fe; color: #5b21b6; }
+    .chart-wrap { height: 320px; margin-top: 0.5rem; }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <div class="wrap">
+    {% block content %}{% endblock %}
+  </div>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

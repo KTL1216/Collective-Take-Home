@@ -1,0 +1,56 @@
+{% extends "reconcile/base.html" %}
+
+{% block title %}Upload files — Balance Reconciliation{% endblock %}
+
+{% block content %}
+<h1>Balance reconciliation</h1>
+<p class="subtitle">
+  Upload your transaction ledger and daily bank statement balances.
+  We compare the cumulative transaction total on each statement date to the bank-reported balance.
+</p>
+
+{% if form.non_field_errors %}
+<div class="errors">
+  {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+</div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  <div class="card">
+    <div class="upload-block transactions">
+      <label for="{{ form.transactions_file.id_for_label }}">
+        {{ form.transactions_file.label }}
+        <span class="tag txn">Transactions</span>
+      </label>
+      <p class="help">{{ form.transactions_file.help_text }}</p>
+      {{ form.transactions_file }}
+      {% if form.transactions_file.errors %}
+      <div class="errors">{% for e in form.transactions_file.errors %}<p>{{ e }}</p>{% endfor %}</div>
+      {% endif %}
+    </div>
+
+    <div class="upload-block bank">
+      <label for="{{ form.bank_balances_file.id_for_label }}">
+        {{ form.bank_balances_file.label }}
+        <span class="tag bank">Bank balances</span>
+      </label>
+      <p class="help">{{ form.bank_balances_file.help_text }}</p>
+      {{ form.bank_balances_file }}
+      {% if form.bank_balances_file.errors %}
+      <div class="errors">{% for e in form.bank_balances_file.errors %}<p>{{ e }}</p>{% endfor %}</div>
+      {% endif %}
+    </div>
+
+    <button type="submit">Run reconciliation</button>
+  </div>
+</form>
+
+<div class="card">
+  <h2 style="margin-top:0;font-size:1.1rem;">CSV format</h2>
+  <p><strong>Transactions</strong> — columns: <code>date</code>, <code>amount</code> (signed decimals; debits negative).</p>
+  <p><strong>Bank balances</strong> — columns: <code>date</code>, <code>balance</code> (end-of-day balance from the statement).</p>
+  <p class="help">Sample files are in the <code>sample_data/</code> folder.</p>
+</div>
+{% endblock %}

@@ -1,0 +1,120 @@
+{% extends "reconcile/base.html" %}
+
+{% block title %}Reconciliation report{% endblock %}
+
+{% block content %}
+<h1>Reconciliation report</h1>
+<p class="subtitle">
+  <a class="btn" href="{% url 'upload' %}">Upload different files</a>
+</p>
+
+{% if reconciles %}
+<div class="banner-ok">Balances reconcile — all {{ summary.bank_statement_days }} statement days match within $0.01.</div>
+{% else %}
+<div class="banner-bad">
+  {{ summary.mismatch_count }} day(s) do not reconcile.
+  {% if summary.first_mismatch_date %}
+  First mismatch: {{ summary.first_mismatch_date }}.
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="stats">
+    <div class="stat"><span class="help">Transactions parsed</span><strong>{{ summary.transaction_count }}</strong></div>
+    <div class="stat"><span class="help">Statement days</span><strong>{{ summary.bank_statement_days }}</strong></div>
+    <div class="stat"><span class="help">Mismatched days</span><strong>{{ summary.mismatch_count }}</strong></div>
+    <div class="stat"><span class="help">Largest |difference|</span><strong>${{ max_abs_diff }}</strong></div>
+  </div>
+</div>
+
+{% if all_warnings %}
+<div class="card">
+  <h2 style="margin-top:0;font-size:1.1rem;">Warnings</h2>
+  <ul class="warn-list">
+    {% for w in all_warnings %}<li>{{ w }}</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2 style="margin-top:0;font-size:1.1rem;">Expected vs actual balance</h2>
+  <div class="chart-wrap">
+    <canvas id="balanceChart"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0;font-size:1.1rem;">Daily detail</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th class="num">Txn count</th>
+        <th class="num">Txn total (day)</th>
+        <th class="num">Expected (cumulative)</th>
+        <th class="num">Bank balance</th>
+        <th class="num">Difference</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in summary.rows %}
+      <tr class="{% if not row.matches %}mismatch{% endif %}">
+        <td>{{ row.balance_date }}</td>
+        <td class="num">{{ row.transaction_count_for_day }}</td>
+        <td class="num">{{ row.transaction_total_for_day }}</td>
+        <td class="num">{{ row.expected_balance }}</td>
+        <td class="num">{{ row.actual_balance }}</td>
+        <td class="num">{{ row.difference }}</td>
+        <td>{% if row.matches %}OK{% else %}Mismatch{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  const labels = {{ chart_labels_json|safe }};
+  const expected = {{ chart_expected_json|safe }};
+  const actual = {{ chart_actual_json|safe }};
+
+  new Chart(document.getElementById("balanceChart"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Expected (from transactions)",
+          data: expected,
+          borderColor: "#2563eb",
+          backgroundColor: "rgba(37, 99, 235, 0.1)",
+          tension: 0.1,
+        },
+        {
+          label: "Actual (bank statement)",
+          data: actual,
+          borderColor: "#7c3aed",
+          backgroundColor: "rgba(124, 58, 237, 0.1)",
+          tension: 0.1,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: "bottom" } },
+      scales: {
+        y: {
+          ticks: {
+            callback: (v) => "$" + Number(v).toLocaleString(),
+          },
+        },
+      },
+    },
+  });
+</script>
+{% endblock %}
