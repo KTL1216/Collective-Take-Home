@@ -22,7 +22,10 @@ class UploadView(View):
 
         try:
             transactions_file.seek(0)
-            transactions, parse_warnings = parse_transactions_csv(transactions_file)
+            transactions, parse_warnings = parse_transactions_csv(
+                transactions_file,
+                source_name=transactions_file.name,
+            )
             bank_file.seek(0)
             bank_balances = parse_bank_balances_csv(bank_file)
         except ParseError as exc:

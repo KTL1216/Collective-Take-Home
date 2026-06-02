@@ -91,7 +91,11 @@ def _read_csv_rows(source: TextIO | BinaryIO) -> Iterable[dict[str, str]]:
         yield row_num, normalized, row
 
 
-def parse_transactions_csv(source: TextIO | BinaryIO) -> tuple[list[Transaction], list[str]]:
+def parse_transactions_csv(
+    source: TextIO | BinaryIO,
+    *,
+    source_name: str = "Transactions CSV",
+) -> tuple[list[Transaction], list[str]]:
     """Parse transactions CSV with columns: date, amount."""
     transactions: list[Transaction] = []
     warnings: list[str] = []
@@ -107,20 +111,24 @@ def parse_transactions_csv(source: TextIO | BinaryIO) -> tuple[list[Transaction]
 
         if not date_raw or date_raw.lower() in {"none", "null", "n/a"}:
             warnings.append(
-                f"Row {row_num}: skipped row with no date "
-                f"(amount={amount_raw or 'empty'}) — often an opening-balance placeholder"
+                f"Row {row_num} in {source_name}: skipped row with no date"
             )
             continue
 
         if not amount_raw or amount_raw.lower() in {"none", "null", "n/a"}:
-            warnings.append(f"Row {row_num}: skipped row with date {date_raw} but no amount")
+            warnings.append(
+                f"Row {row_num} in {source_name}: skipped row with date {date_raw} but no amount"
+            )
             continue
 
         try:
             txn_date = _parse_date(date_raw, "date", row_num)
             amount = _parse_decimal(amount_raw, "amount", row_num)
         except ParseError:
-            warnings.append(f"Row {row_num}: skipped invalid row (date={date_raw!r}, amount={amount_raw!r})")
+            warnings.append(
+                f"Row {row_num} in {source_name}: skipped invalid row "
+                f"(date={date_raw!r}, amount={amount_raw!r})"
+            )
             continue
 
         transactions.append(Transaction(txn_date, amount))
