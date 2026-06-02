@@ -16,6 +16,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, SimpleTestCase, TestCase
 from django.urls import reverse
 
+# Absolute imports: this module is discovered as top-level "test", not reconcile.test.
 from reconcile.forms import ReconciliationUploadForm
 from reconcile.services import (
     BankBalance,

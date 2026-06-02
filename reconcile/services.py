@@ -1,8 +1,12 @@
 """
-Reconcile cumulative transaction totals against daily bank statement balances.
+CSV parsing and balance reconciliation.
 
-Expected balance on a date = sum of all transaction amounts with date <= that date.
-Rows with missing/invalid dates (e.g. opening-balance placeholders) are skipped.
+For each bank statement date, expected balance is a running sum of transaction
+amounts posted that day; on days with no postings the expected balance is unchanged.
+A day matches when |bank_balance - expected| <= tolerance (default $0.01).
+
+Transaction rows with missing/invalid fields are skipped with warnings; bank rows
+must parse cleanly or parsing raises ParseError.
 """
 
 from __future__ import annotations
@@ -16,23 +20,28 @@ from typing import BinaryIO, Iterable, TextIO
 
 
 class ParseError(ValueError):
-    """Raised when a CSV cannot be parsed."""
+    """Fatal CSV shape or bank-row parse failure (see parse_transactions for soft skips)."""
 
 
 @dataclass(frozen=True)
 class Transaction:
+    """Ledger line; amount is signed (debits negative)."""
+
     transaction_date: date
     amount: Decimal
 
 
 @dataclass(frozen=True)
 class BankBalance:
+    """End-of-day balance from the bank statement."""
+
     balance_date: date
     balance: Decimal
 
 
 @dataclass(frozen=True)
 class DailyReconciliation:
+    """One statement date: cumulative expected vs reported bank balance."""
     balance_date: date
     expected_balance: Decimal
     actual_balance: Decimal
@@ -44,6 +53,8 @@ class DailyReconciliation:
 
 @dataclass(frozen=True)
 class ReconciliationSummary:
+    """Full run: per-day rows plus roll-up counts and non-fatal warnings."""
+
     rows: list[DailyReconciliation]
     first_mismatch_date: date | None
     mismatch_count: int
@@ -53,6 +64,7 @@ class ReconciliationSummary:
 
 
 def _normalize_header(name: str) -> str:
+    # Case-insensitive match; strip UTF-8 BOM from Excel exports.
     return name.strip().lower().lstrip("\ufeff")
 
 
@@ -77,15 +89,18 @@ def _parse_date(value: str, field: str, row_num: int) -> date:
 
 
 def _read_csv_rows(source: TextIO | BinaryIO) -> Iterable[dict[str, str]]:
+    """Yield (row_num, header_map, row) for each non-empty data row."""
     if isinstance(source, io.TextIOBase):
         reader = csv.DictReader(source)
     else:
+        # UploadedFile from Django is binary; utf-8-sig handles BOM on first column.
         text = io.TextIOWrapper(source, encoding="utf-8-sig", newline="")
         reader = csv.DictReader(text)
     if reader.fieldnames is None:
         raise ParseError("CSV file is empty or has no header row")
+    # Map normalized name -> original header key for DictReader row lookup.
     normalized = {_normalize_header(h): h for h in reader.fieldnames}
-    for row_num, row in enumerate(reader, start=2):
+    for row_num, row in enumerate(reader, start=2):  # row 1 is the header
         if not any((v or "").strip() for v in row.values()):
             continue
         yield row_num, normalized, row
@@ -96,7 +111,10 @@ def parse_transactions_csv(
     *,
     source_name: str = "Transactions CSV",
 ) -> tuple[list[Transaction], list[str]]:
-    """Parse transactions CSV with columns: date, amount."""
+    """Parse transactions CSV with columns: date, amount.
+
+    Bad rows are skipped and recorded in warnings (e.g. opening-balance placeholders).
+    """
     transactions: list[Transaction] = []
     warnings: list[str] = []
 
@@ -138,7 +156,10 @@ def parse_transactions_csv(
 
 
 def parse_bank_balances_csv(source: TextIO | BinaryIO) -> list[BankBalance]:
-    """Parse bank balances CSV with columns: date, balance."""
+    """Parse bank balances CSV with columns: date, balance.
+
+    Any invalid row aborts the whole file (bank data must be complete).
+    """
     balances: list[BankBalance] = []
 
     for row_num, headers, row in _read_csv_rows(source):
@@ -174,12 +195,15 @@ def reconcile(
     """
     warnings: list[str] = []
 
+    # Aggregate multiple ledger lines per calendar day.
     daily_txn_totals: dict[date, Decimal] = {}
     daily_txn_counts: dict[date, int] = {}
     for txn in transactions:
         daily_txn_totals[txn.transaction_date] = daily_txn_totals.get(txn.transaction_date, Decimal("0")) + txn.amount
         daily_txn_counts[txn.transaction_date] = daily_txn_counts.get(txn.transaction_date, 0) + 1
 
+    # Ledger dates outside the statement window are reported but still excluded
+    # from running_expected unless a statement row exists on that date.
     txn_dates = sorted(daily_txn_totals.keys())
     if txn_dates and bank_balances:
         first_bank = bank_balances[0].balance_date
@@ -200,11 +224,12 @@ def reconcile(
     first_mismatch_date: date | None = None
 
     for entry in bank_balances:
+        # Post that day's ledger total; quiet days leave running_expected unchanged.
         if entry.balance_date in daily_txn_totals:
             running_expected += daily_txn_totals[entry.balance_date]
 
         difference = entry.balance - running_expected
-        matches = abs(difference) <= tolerance
+        matches = abs(difference) <= tolerance  # bank - expected; default ±$0.01
         if not matches:
             mismatch_count += 1
             if first_mismatch_date is None:

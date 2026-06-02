@@ -1,3 +1,5 @@
+"""App routes (mounted at site root via config.urls)."""
+
 from django.urls import path
 
 from .views import UploadView
